@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: reelrecall
+      POSTGRES_USER: reelrecall
+      POSTGRES_PASSWORD: reelrecall
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg://reelrecall:reelrecall@db:5432/reelrecall
+      APP_ENV: development
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

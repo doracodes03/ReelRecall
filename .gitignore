@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+node_modules/
+dist/
+.DS_Store
+.idea/
+.vscode/
+**/.pytest_cache/
+**/.mypy_cache/
+# Python virtual environment
+.venv/
+
+# Downloaded dataset
+dataset/**/*.mp4
+dataset/**/*.webm
+dataset/**/*.mkv
+dataset/**/*.mov
+dataset/downloaded_archive.txt
