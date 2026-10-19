@@ -23,7 +23,7 @@ the exact title.
 
 ### Keep your saved Shorts and Reels together
 
-![ReelRecall library page showing saved videos and indexing status](./image%20(1).png)
+![ReelRecall library page showing saved videos and indexing status](./image%20%281%29.png)
 
 ## What you can do
 
