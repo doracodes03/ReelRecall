@@ -1,141 +1,153 @@
 # ReelRecall
 
-ReelRecall is an AI-powered short-video memory and semantic search MVP for saving and rediscovering YouTube Shorts and Instagram Reels using natural-language memory recall instead of brittle manual tags.
+<div align="center">
 
-## Highlights
+### Your videos are saved. Now make them findable.
 
-- Save video URLs from YouTube Shorts and Instagram Reels
-- Keep each user's saved videos and search results private
-- Extract platform metadata, audio transcripts, on-screen text, and visual descriptions when providers are configured
-- Search indexed evidence with lexical, optional semantic, visual-description, metadata, or hybrid retrieval
-- Explain results using the matched source field and any available timestamp
+ReelRecall is a personal library for saving short videos and finding them again
+by what you remember — a recipe, a scene, an outfit, or something someone said.
+Search your saved YouTube Shorts and Instagram Reels without needing to recall
+the exact title.
 
-## Quick start
+**Save it once. Find it by memory.**
 
-1. Copy `.env.example` to `.env` and replace `JWT_SECRET` with a fresh secret.
-   For PowerShell:
+</div>
 
-   ```powershell
-   $bytes = New-Object byte[] 32
-   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-   [Convert]::ToBase64String($bytes)
-   ```
+---
 
-   Paste the generated value into `.env`. Do not use the example database
-   password or commit `.env`.
+## Take a look
 
-2. Install the backend dependencies, start PostgreSQL, and migrate the existing schema:
+### Discover videos by describing what you remember
+
+![ReelRecall discovery page with natural-language memory search and recently saved videos](./image.png)
+
+### Keep your saved Shorts and Reels together
+
+![ReelRecall library page showing saved videos and indexing status](./image%20(1).png)
+
+## What you can do
+
+- **Save links** to YouTube Shorts and Instagram Reels in your personal library.
+- **Search in your own words** using details such as a recipe, visual scene, or
+  spoken explanation.
+- **Index video evidence** such as transcripts and visual descriptions when the
+  corresponding providers and dependencies are configured.
+- **See why a result matched**, including its evidence source and any available
+  timestamp.
+- **Track indexing status** and re-index individual videos or your library.
+- **Keep accounts separate**: library and search operations are scoped to the
+  signed-in user.
+
+ReelRecall is an evolving MVP. Search quality depends on which videos have
+searchable extracted content and which optional providers are configured.
+Metadata fallback is available when content evidence is missing; it is not a
+substitute for indexing the video.
+
+## Run locally on Windows
+
+### Requirements
+
+- Python and `pip`
+- Node.js and npm
+- Docker Desktop (for PostgreSQL)
+- FFmpeg on `PATH` for media download and frame extraction
+
+### 1. Configure the backend
+
+From the project folder, create a fresh signing secret:
 
 ```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-cd ..
+$bytes = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$secret = [Convert]::ToBase64String($bytes)
+$secret
+```
+
+Add the generated value to the root `.env` file:
+
+```dotenv
+JWT_SECRET=replace-with-the-generated-value
+```
+
+Replace the example value with the generated value. If `.env` already exists,
+preserve its other settings and add or update `JWT_SECRET`. Never commit `.env`
+or share its contents.
+
+### 2. Start the database and prepare the backend
+
+In PowerShell, from the project folder:
+
+```powershell
 docker compose up -d db
 cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 alembic upgrade head
 ```
 
-The migration adds missing columns to the legacy `videos` table and creates
-new provenance/indexing tables without deleting legacy data.
+If PowerShell blocks virtual-environment activation, follow the Python
+documentation for enabling script execution for your user, or run the
+environment's activation script from Command Prompt instead.
 
-3. Start the API and frontend in separate terminals:
+### 3. Start the API and web app
 
-```bash
+Open two terminals. In the first, start the API:
+
+```powershell
 cd backend
+.\.venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-```bash
+In the second, start the frontend:
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Create an account in the web app. Every video, search, and library operation
-requires its bearer token and is scoped to that account. Saved links are stored
-immediately; metadata and configured content-indexing stages run afterwards.
-Remote media is downloaded only when its permission is explicitly marked
-`owned` or `authorized`; local files can be indexed without a remote download.
-Downloading/merging media requires FFmpeg on `PATH`. On Windows, install it
-with `winget install --id Gyan.FFmpeg.Shared --exact`, then restart the backend
-terminal so it inherits the updated `PATH`. The backend also discovers the
-standard per-user winget installation; set `FFMPEG_PATH` to the full
-`ffmpeg.exe` path if FFmpeg is installed elsewhere.
+Open the local address printed by Vite in the frontend terminal, create an
+account, and start saving videos.
 
-### Optional indexing providers
+## Search and indexing
 
-Semantic search uses the default multilingual
-`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` model. Install
-backend requirements and start the backend with internet access so Sentence
-Transformers can download and warm the model. The initial backend startup may
-take longer; semantic searches then avoid the model's cold-load delay. Set
-`EMBEDDING_MODEL` to a different Sentence Transformers model if needed. Use each video's
-**Re-index for semantic search** action to create vectors for videos saved
-before embeddings were configured. `TRANSCRIPTION_MODEL` uses faster-whisper;
-`VISION_MODEL` uses Transformers for frame descriptions. FFmpeg must be
-available for media download and frame extraction. OCR additionally requires
-EasyOCR; its stage status explains when that optional dependency is missing.
-Missing optional providers are recorded as unsupported stage statuses; the API
-does not invent transcripts, descriptions, or vectors.
+Semantic search uses
+`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` by default. The
+first startup may take longer while the model downloads and warms up. You can
+change the model with `EMBEDDING_MODEL`.
 
-The Library page's **Re-index all videos** action queues only videos that are
-not already queued or processing, and shows live per-video batch progress.
-It remains scoped to the signed-in user's library and respects each video's
-media permission. A `metadata_only` result means indexing finished without
-searchable extracted content; check the per-stage status for the cause.
+Transcript generation uses `faster-whisper` when configured. Visual
+descriptions use Transformers when `VISION_MODEL` is configured. OCR requires
+EasyOCR; summaries require a configured summary provider. Optional stages that
+are unavailable are reported as unsupported rather than treated as completed.
+After installing a provider or FFmpeg, use the re-index controls to process
+videos already in your library.
 
-Import the existing dataset manifest into a specific account after creating
-that account:
+For remote media, ReelRecall downloads only when permission is explicitly
+marked **owned** or **authorized**. Local media can be indexed without a remote
+download. Make sure you have the right to access and process any media you add.
 
-```powershell
-python scripts\import_dataset_manifest.py --owner-email you@example.com
-```
+## Project layout
 
-The importer preserves manifest category/notes as annotation fields, marks
-license permission as unknown, and never sends those annotations to extraction
-or benchmark ranking. Add `--index` to process imported entries immediately.
+| Path | Purpose |
+| --- | --- |
+| `backend/` | FastAPI API, database models, indexing, and retrieval |
+| `frontend/` | React, TypeScript, and Vite web app |
+| `docs/` | Product, architecture, API, and evaluation documentation |
+| `dataset/` | Dataset manifest and local dataset workflow |
+| `evaluation/` | Evaluation instructions and local relevance workflow |
+| `scripts/` | Dataset and retrieval utilities |
+| `docker-compose.yml` | Local PostgreSQL service |
 
-See [evaluation/README.md](./evaluation/README.md) for a judgment-isolated
-retrieval evaluation workflow. No labeled evaluation set or measured quality
-baseline is included in the repository.
-## Product goals
+## Evaluation
 
-This project is built as an MVP for a personal library of short-form videos, where a user can recall a video using memory, scene details, spoken explanation, mood, or metadata rather than exact title words.
+See [evaluation/README.md](./evaluation/README.md) for the local retrieval
+evaluation workflow. The repository does not include a measured quality
+baseline or a public set of relevance judgments.
 
-## Repository structure
+## Contributing
 
-- `frontend/` — React + Vite + TypeScript app
-- `backend/` — FastAPI API + retrieval services
-- `docs/` — product, architecture, API, and evaluation specs
-- `docker-compose.yml` — local orchestration for app services
-
-## Dataset downloads
-
-Install the Python dependencies, Node.js (for current YouTube extraction), and
-FFmpeg (to merge separate audio and video streams). The downloader automatically
-uses Node and searches for FFmpeg in PATH or the standard WinGet install location.
-
-Run the configured URL list:
-
-```powershell
-python scripts\download_dataset.py
-```
-
-Retry only one configured URL while diagnosing a failure:
-
-```powershell
-python scripts\download_dataset.py --url "https://youtube.com/shorts/M3cFQzFyx1E?si=6IMbuRJnVxkhp0iy"
-```
-
-For Instagram Reels that require a logged-in session, use a browser profile where
-you are already signed in:
-
-```powershell
-python scripts\download_dataset.py --cookies-from-browser chrome
-```
-
-The downloader saves per-URL outcomes and errors in `dataset/manifest.csv`.
-Private, deleted, region-restricted, or otherwise inaccessible posts still
-require legitimate access; the downloader cannot retrieve unavailable media.
+Issues and pull requests are welcome. Please avoid committing `.env`, private
+media, downloaded datasets, or personal evaluation judgments.
